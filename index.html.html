@@ -1,0 +1,1117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Toronto Leads Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg-primary: #f5f7fa;
+      --bg-secondary: #ffffff;
+      --text-primary: #2d3748;
+      --text-secondary: #718096;
+      --border-color: #e2e8f0;
+      --accent-blue: #4299e1;
+      --accent-green: #48bb78;
+      --accent-orange: #ed8936;
+      --accent-purple: #9f7aea;
+      --hover-bg: #f7fafc;
+      --shadow: rgba(0,0,0,0.05);
+    }
+
+    [data-theme="dark"] {
+      --bg-primary: #1a202c;
+      --bg-secondary: #2d3748;
+      --text-primary: #f7fafc;
+      --text-secondary: #a0aec0;
+      --border-color: #4a5568;
+      --hover-bg: #374151;
+      --shadow: rgba(0,0,0,0.3);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      padding: 20px;
+      transition: background 0.3s, color 0.3s;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    /* Login Screen */
+    .login-container {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+    }
+
+    .login-box {
+      background: var(--bg-secondary);
+      padding: 40px;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px var(--shadow);
+      width: 100%;
+      max-width: 400px;
+    }
+
+    .login-box h2 {
+      margin-bottom: 8px;
+      font-size: 28px;
+    }
+
+    .login-box p {
+      color: var(--text-secondary);
+      margin-bottom: 32px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-secondary);
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 12px 16px;
+      border: 2px solid var(--border-color);
+      border-radius: 8px;
+      font-size: 14px;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      transition: border 0.2s;
+    }
+
+    .form-group input:focus {
+      outline: none;
+      border-color: var(--accent-blue);
+    }
+
+    .btn-login {
+      width: 100%;
+      padding: 14px;
+      background: var(--accent-blue);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn-login:hover {
+      background: #3182ce;
+    }
+
+    .btn-login:disabled {
+      background: var(--text-secondary);
+      cursor: not-allowed;
+    }
+
+    .error-message {
+      background: #fee;
+      color: #c53030;
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      font-size: 14px;
+    }
+
+    /* Header */
+    header {
+      background: var(--bg-secondary);
+      padding: 24px 30px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px var(--shadow);
+      margin-bottom: 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+
+    .header-left h1 {
+      font-size: 28px;
+      margin-bottom: 8px;
+    }
+
+    .subtitle {
+      color: var(--text-secondary);
+      font-size: 14px;
+    }
+
+    .header-right {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .theme-toggle {
+      background: var(--bg-primary);
+      border: 2px solid var(--border-color);
+      padding: 8px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 20px;
+      transition: all 0.2s;
+    }
+
+    .theme-toggle:hover {
+      transform: scale(1.1);
+    }
+
+    .btn-logout {
+      padding: 8px 16px;
+      background: var(--accent-orange);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn-logout:hover {
+      background: #dd6b20;
+    }
+
+    /* Filters */
+    .filters {
+      background: var(--bg-secondary);
+      padding: 24px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px var(--shadow);
+      margin-bottom: 30px;
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      align-items: end;
+    }
+
+    .filter-group {
+      flex: 1;
+      min-width: 200px;
+    }
+
+    .filter-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      letter-spacing: 0.5px;
+    }
+
+    .filter-group select,
+    .filter-group input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 2px solid var(--border-color);
+      border-radius: 8px;
+      font-size: 14px;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+    }
+
+    .btn-filter {
+      padding: 10px 20px;
+      background: var(--accent-blue);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn-filter:hover {
+      background: #3182ce;
+    }
+
+    .btn-export {
+      padding: 10px 20px;
+      background: var(--accent-green);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn-export:hover {
+      background: #38a169;
+    }
+
+    /* KPIs */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+
+    .kpi-card {
+      background: var(--bg-secondary);
+      padding: 24px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px var(--shadow);
+      border-left: 4px solid var(--accent-blue);
+      transition: transform 0.2s;
+    }
+
+    .kpi-card:hover {
+      transform: translateY(-4px);
+    }
+
+    .kpi-card.success { border-left-color: var(--accent-green); }
+    .kpi-card.warning { border-left-color: var(--accent-orange); }
+    .kpi-card.info { border-left-color: var(--accent-purple); }
+
+    .kpi-value {
+      font-size: 36px;
+      font-weight: bold;
+      margin-bottom: 8px;
+    }
+
+    .kpi-label {
+      font-size: 14px;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* Charts */
+    .chart-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+
+    .chart-container {
+      background: var(--bg-secondary);
+      padding: 24px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+
+    .chart-container canvas {
+      max-height: 300px;
+    }
+
+    /* Sections */
+    .section {
+      background: var(--bg-secondary);
+      padding: 24px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px var(--shadow);
+      margin-bottom: 30px;
+    }
+
+    .section-title {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .badge {
+      background: var(--accent-blue);
+      color: white;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    /* Tables */
+    .table-wrapper {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th {
+      text-align: left;
+      padding: 12px;
+      background: var(--bg-primary);
+      font-weight: 600;
+      font-size: 12px;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 2px solid var(--border-color);
+    }
+
+    td {
+      padding: 16px 12px;
+      border-bottom: 1px solid var(--border-color);
+      font-size: 14px;
+    }
+
+    tr:hover {
+      background: var(--hover-bg);
+    }
+
+    .segment-badge {
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      display: inline-block;
+    }
+
+    .segment-premium { background: #fef5e7; color: #d97706; }
+    .segment-standard { background: #e0f2fe; color: #0369a1; }
+    .segment-new { background: #f3f4f6; color: #6b7280; }
+
+    [data-theme="dark"] .segment-premium { background: #78350f; color: #fbbf24; }
+    [data-theme="dark"] .segment-standard { background: #075985; color: #7dd3fc; }
+    [data-theme="dark"] .segment-new { background: #374151; color: #d1d5db; }
+
+    /* Buttons */
+    .btn {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: var(--accent-blue);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #3182ce;
+    }
+
+    .btn-success {
+      background: var(--accent-green);
+      color: white;
+    }
+
+    .btn-success:hover {
+      background: #38a169;
+    }
+
+    .btn-sm {
+      padding: 6px 12px;
+      font-size: 12px;
+      margin-right: 6px;
+    }
+
+    .phone-link {
+      color: var(--accent-blue);
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .phone-link:hover {
+      text-decoration: underline;
+    }
+
+    /* Loading & Empty States */
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: var(--text-secondary);
+    }
+
+    .spinner {
+      border: 3px solid var(--border-color);
+      border-top: 3px solid var(--accent-blue);
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 16px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-secondary);
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: var(--text-primary);
+      color: var(--bg-secondary);
+      padding: 16px 24px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px var(--shadow);
+      transform: translateY(100px);
+      opacity: 0;
+      transition: all 0.3s;
+      z-index: 1000;
+    }
+
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    /* Responsive */
+    @media (max-width: 968px) {
+      .chart-row {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .kpi-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .filters {
+        flex-direction: column;
+      }
+      
+      .filter-group {
+        width: 100%;
+      }
+      
+      table {
+        font-size: 12px;
+      }
+      
+      th, td {
+        padding: 8px 6px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Login Screen -->
+  <div id="loginScreen" class="login-container">
+    <div class="login-box">
+      <h2>🎯 Lead Dashboard</h2>
+      <p>Sign in to access your leads</p>
+      <div id="loginError" class="error-message" style="display:none;"></div>
+      <form id="loginForm">
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="loginEmail" required placeholder="dashboard@example.com">
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="loginPassword" required placeholder="••••••••">
+        </div>
+        <button type="submit" class="btn-login">Sign In</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Dashboard -->
+  <div id="dashboardScreen" style="display:none;">
+    <div class="container">
+      <header>
+        <div class="header-left">
+          <h1>🎯 Toronto Leads Dashboard</h1>
+          <p class="subtitle">Real-time lead generation monitoring • Last updated: <span id="lastUpdate">--</span></p>
+        </div>
+        <div class="header-right">
+          <button class="theme-toggle" id="themeToggle">🌙</button>
+          <button class="btn-logout" id="logoutBtn">Logout</button>
+        </div>
+      </header>
+
+      <!-- Filters -->
+      <div class="filters">
+        <div class="filter-group">
+          <label>Search</label>
+          <input type="text" id="searchInput" placeholder="Search by business name...">
+        </div>
+        <div class="filter-group">
+          <label>Segment</label>
+          <select id="segmentFilter">
+            <option value="">All Segments</option>
+            <option value="premium">Premium</option>
+            <option value="standard">Standard</option>
+            <option value="new">New</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>Date From</label>
+          <input type="date" id="dateFrom">
+        </div>
+        <div class="filter-group">
+          <label>Date To</label>
+          <input type="date" id="dateTo">
+        </div>
+        <div style="display:flex; gap:8px;">
+          <button class="btn-filter" id="applyFilters">Apply Filters</button>
+          <button class="btn-export" id="exportCSV">📥 Export CSV</button>
+        </div>
+      </div>
+
+      <div id="loading" class="loading">
+        <div class="spinner"></div>
+        <p>Loading dashboard data...</p>
+      </div>
+
+      <div id="dashboard" style="display: none;">
+        <!-- KPIs -->
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-value" id="kpi-total">--</div>
+            <div class="kpi-label">Total Leads</div>
+          </div>
+          <div class="kpi-card success">
+            <div class="kpi-value" id="kpi-emails">--</div>
+            <div class="kpi-label">Emails Sent</div>
+          </div>
+          <div class="kpi-card warning">
+            <div class="kpi-value" id="kpi-whatsapp">--</div>
+            <div class="kpi-label">WhatsApp Pending</div>
+          </div>
+          <div class="kpi-card info">
+            <div class="kpi-value" id="kpi-premium">--</div>
+            <div class="kpi-label">Premium Leads</div>
+          </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="chart-row">
+          <div class="chart-container">
+            <canvas id="segmentChart"></canvas>
+          </div>
+          <div class="chart-container">
+            <canvas id="timelineChart"></canvas>
+          </div>
+        </div>
+
+        <!-- WhatsApp Queue -->
+        <div class="section">
+          <div class="section-title">
+            💬 WhatsApp Queue
+            <span class="badge" id="queueCount">0</span>
+          </div>
+          <div class="table-wrapper">
+            <div id="whatsappTable"></div>
+          </div>
+        </div>
+
+        <!-- Recent Email Sends -->
+        <div class="section">
+          <div class="section-title">📧 Recent Email Campaigns</div>
+          <div class="table-wrapper">
+            <div id="emailTable"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script>
+    // ============================================
+    // CONFIGURACIÓN - EDITA ESTOS VALORES
+    // ============================================
+    const SUPABASE_URL = 'https://kgbygrmwtwpmomkbmnzj.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtnYnlncm13dHdwbW9ta2JtbnpqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0NzcwODYsImV4cCI6MjA5MzA1MzA4Nn0.RZ3p8bbyp2zxODfhhfiXprSGwrM4D8TAa_CZLnktyYU';
+    
+    // ============================================
+    // INICIALIZAR SUPABASE CLIENT
+    // ============================================
+    const { createClient } = supabase;
+    const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // State
+    let currentUser = null;
+    let allLeads = [];
+    let filteredLeads = [];
+    let allWhatsappQueue = [];
+
+    // Theme
+    const themeToggle = document.getElementById('themeToggle');
+    const currentTheme = localStorage.getItem('theme') || 'light';
+    document.documentElement.setAttribute('data-theme', currentTheme);
+    themeToggle.textContent = currentTheme === 'dark' ? '☀️' : '🌙';
+
+    themeToggle.addEventListener('click', () => {
+      const theme = document.documentElement.getAttribute('data-theme');
+      const newTheme = theme === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', newTheme);
+      localStorage.setItem('theme', newTheme);
+      themeToggle.textContent = newTheme === 'dark' ? '☀️' : '🌙';
+      
+      // Redraw charts with new theme
+      if (window.segmentChart) updateCharts();
+    });
+
+    // ============================================
+    // AUTHENTICATION
+    // ============================================
+    
+    async function checkAuth() {
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      
+      if (session) {
+        currentUser = session.user;
+        showDashboard();
+      } else {
+        showLogin();
+      }
+    }
+
+    function showLogin() {
+      document.getElementById('loginScreen').style.display = 'flex';
+      document.getElementById('dashboardScreen').style.display = 'none';
+    }
+
+    function showDashboard() {
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('dashboardScreen').style.display = 'block';
+      loadDashboard();
+    }
+
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const email = document.getElementById('loginEmail').value;
+      const password = document.getElementById('loginPassword').value;
+      const errorDiv = document.getElementById('loginError');
+      const submitBtn = e.target.querySelector('button[type="submit"]');
+      
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Signing in...';
+      errorDiv.style.display = 'none';
+      
+      const { data, error } = await supabaseClient.auth.signInWithPassword({
+        email,
+        password
+      });
+      
+      if (error) {
+        errorDiv.textContent = error.message;
+        errorDiv.style.display = 'block';
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Sign In';
+      } else {
+        currentUser = data.user;
+        showDashboard();
+      }
+    });
+
+    document.getElementById('logoutBtn').addEventListener('click', async () => {
+      await supabaseClient.auth.signOut();
+      showLogin();
+    });
+
+    // ============================================
+    // TOAST
+    // ============================================
+    
+    function showToast(message) {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+
+    // ============================================
+    // DATA LOADING
+    // ============================================
+    
+    async function loadDashboard() {
+      try {
+        document.getElementById('loading').style.display = 'block';
+        document.getElementById('dashboard').style.display = 'none';
+
+        const [leadsRes, whatsappRes] = await Promise.all([
+          supabaseClient.from('validated_leads').select('*').order('created_at', { ascending: false }),
+          supabaseClient.from('phone_outreach_queue').select('*').eq('status', 'pending').order('opportunity_score', { ascending: false })
+        ]);
+
+        if (leadsRes.error) throw leadsRes.error;
+        if (whatsappRes.error) throw whatsappRes.error;
+
+        allLeads = leadsRes.data;
+        filteredLeads = [...allLeads];
+        allWhatsappQueue = whatsappRes.data;
+
+        updateKPIs();
+        updateCharts();
+        renderWhatsAppTable(allWhatsappQueue);
+        renderEmailTable(filteredLeads.filter(l => l.email_sent).slice(0, 10));
+
+        document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
+        document.getElementById('queueCount').textContent = allWhatsappQueue.length;
+
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('dashboard').style.display = 'block';
+
+      } catch (error) {
+        console.error('Error loading dashboard:', error);
+        showToast('⚠️ Error loading data: ' + error.message);
+      }
+    }
+
+    function updateKPIs() {
+      document.getElementById('kpi-total').textContent = filteredLeads.length;
+      document.getElementById('kpi-emails').textContent = filteredLeads.filter(l => l.email_sent).length;
+      document.getElementById('kpi-whatsapp').textContent = allWhatsappQueue.length;
+      document.getElementById('kpi-premium').textContent = filteredLeads.filter(l => l.segment === 'premium').length;
+    }
+
+    function updateCharts() {
+      updateSegmentChart();
+      updateTimelineChart();
+    }
+
+    function updateSegmentChart() {
+      const ctx = document.getElementById('segmentChart').getContext('2d');
+      const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+      
+      if (window.segmentChart) window.segmentChart.destroy();
+      
+      const segmentCounts = {
+        premium: filteredLeads.filter(l => l.segment === 'premium').length,
+        standard: filteredLeads.filter(l => l.segment === 'standard').length,
+        new: filteredLeads.filter(l => l.segment === 'new').length
+      };
+      
+      window.segmentChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Premium', 'Standard', 'New'],
+          datasets: [{
+            data: [segmentCounts.premium, segmentCounts.standard, segmentCounts.new],
+            backgroundColor: ['#fbbf24', '#60a5fa', '#9ca3af'],
+            borderWidth: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          plugins: {
+            legend: { 
+              position: 'bottom',
+              labels: { color: isDark ? '#f7fafc' : '#2d3748' }
+            },
+            title: {
+              display: true,
+              text: 'Leads by Segment',
+              font: { size: 16, weight: '600' },
+              color: isDark ? '#f7fafc' : '#2d3748'
+            }
+          }
+        }
+      });
+    }
+
+    function updateTimelineChart() {
+      const ctx = document.getElementById('timelineChart').getContext('2d');
+      const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+      
+      if (window.timelineChart) window.timelineChart.destroy();
+      
+      // Group leads by date (last 30 days)
+      const last30Days = [];
+      const today = new Date();
+      
+      for (let i = 29; i >= 0; i--) {
+        const date = new Date(today);
+        date.setDate(date.getDate() - i);
+        last30Days.push(date.toISOString().split('T')[0]);
+      }
+      
+      const leadsByDay = last30Days.map(date => {
+        return filteredLeads.filter(l => l.created_at && l.created_at.startsWith(date)).length;
+      });
+      
+      window.timelineChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: last30Days.map(d => {
+            const date = new Date(d);
+            return `${date.getMonth() + 1}/${date.getDate()}`;
+          }),
+          datasets: [{
+            label: 'Leads Processed',
+            data: leadsByDay,
+            borderColor: '#4299e1',
+            backgroundColor: 'rgba(66, 153, 225, 0.1)',
+            tension: 0.4,
+            fill: true
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          plugins: {
+            legend: { 
+              display: false 
+            },
+            title: {
+              display: true,
+              text: 'Leads Over Time (Last 30 Days)',
+              font: { size: 16, weight: '600' },
+              color: isDark ? '#f7fafc' : '#2d3748'
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: { color: isDark ? '#a0aec0' : '#718096' },
+              grid: { color: isDark ? '#4a5568' : '#e2e8f0' }
+            },
+            x: {
+              ticks: { 
+                color: isDark ? '#a0aec0' : '#718096',
+                maxRotation: 45,
+                minRotation: 45
+              },
+              grid: { color: isDark ? '#4a5568' : '#e2e8f0' }
+            }
+          }
+        }
+      });
+    }
+
+    // ============================================
+    // FILTERS
+    // ============================================
+    
+    document.getElementById('applyFilters').addEventListener('click', applyFilters);
+    
+    function applyFilters() {
+      const search = document.getElementById('searchInput').value.toLowerCase();
+      const segment = document.getElementById('segmentFilter').value;
+      const dateFrom = document.getElementById('dateFrom').value;
+      const dateTo = document.getElementById('dateTo').value;
+      
+      filteredLeads = allLeads.filter(lead => {
+        // Search filter
+        if (search && !lead.name.toLowerCase().includes(search)) return false;
+        
+        // Segment filter
+        if (segment && lead.segment !== segment) return false;
+        
+        // Date filters
+        if (dateFrom && lead.created_at < dateFrom) return false;
+        if (dateTo && lead.created_at > dateTo + 'T23:59:59') return false;
+        
+        return true;
+      });
+      
+      updateKPIs();
+      updateCharts();
+      renderEmailTable(filteredLeads.filter(l => l.email_sent).slice(0, 10));
+      
+      showToast(`✓ Filters applied - ${filteredLeads.length} leads found`);
+    }
+
+    // ============================================
+    // EXPORT CSV
+    // ============================================
+    
+    document.getElementById('exportCSV').addEventListener('click', exportToCSV);
+    
+    function exportToCSV() {
+      const headers = ['Name', 'Score', 'Segment', 'Phone', 'Email', 'Website', 'Rating', 'Reviews', 'Status', 'Created'];
+      
+      const rows = filteredLeads.map(lead => [
+        lead.name,
+        lead.opportunity_score,
+        lead.segment,
+        lead.phone || '',
+        lead.email || '',
+        lead.website || '',
+        lead.google_rating,
+        lead.reviews_count,
+        lead.status,
+        lead.created_at
+      ]);
+      
+      let csv = headers.join(',') + '\n';
+      csv += rows.map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
+      
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `leads-export-${new Date().toISOString().split('T')[0]}.csv`;
+      a.click();
+      
+      showToast(`✓ Exported ${filteredLeads.length} leads to CSV`);
+    }
+
+    // ============================================
+    // WHATSAPP ACTIONS
+    // ============================================
+    
+    function openWhatsApp(phone, message) {
+      const cleanPhone = phone.replace(/[^0-9]/g, '');
+      const encodedMessage = encodeURIComponent(message);
+      window.open(`https://wa.me/${cleanPhone}?text=${encodedMessage}`, '_blank');
+    }
+
+    async function markAsContacted(id, name) {
+      const { error } = await supabaseClient
+        .from('phone_outreach_queue')
+        .update({ 
+          status: 'contacted',
+          contacted_at: new Date().toISOString()
+        })
+        .eq('id', id);
+      
+      if (error) {
+        showToast('⚠️ Error updating: ' + error.message);
+      } else {
+        showToast(`✓ ${name} marked as contacted`);
+        loadDashboard();
+      }
+    }
+
+    // ============================================
+    // RENDER TABLES
+    // ============================================
+    
+    function renderWhatsAppTable(data) {
+      const container = document.getElementById('whatsappTable');
+      
+      if (data.length === 0) {
+        container.innerHTML = '<div class="empty-state"><p>No pending WhatsApp messages</p></div>';
+        return;
+      }
+      
+      container.innerHTML = `
+        <table>
+          <thead>
+            <tr>
+              <th>Business Name</th>
+              <th>Phone</th>
+              <th>Score</th>
+              <th>Segment</th>
+              <th>Channel</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${data.map(lead => `
+              <tr>
+                <td><strong>${lead.name}</strong></td>
+                <td><a href="tel:${lead.phone}" class="phone-link">${lead.phone}</a></td>
+                <td><strong>${lead.opportunity_score}</strong></td>
+                <td><span class="segment-badge segment-${lead.segment}">${lead.segment}</span></td>
+                <td>${lead.suggested_channel}</td>
+                <td>
+                  <button class="btn btn-primary btn-sm" onclick="openWhatsApp('${lead.phone}', \`${lead.whatsapp_message.replace(/`/g, '\\`').replace(/\$/g, '\\$')}\`)">
+                    Send WhatsApp
+                  </button>
+                  <button class="btn btn-success btn-sm" onclick="markAsContacted(${lead.id}, '${lead.name.replace(/'/g, "\\'")}')">
+                    Mark Contacted
+                  </button>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+    }
+
+    function renderEmailTable(data) {
+      const container = document.getElementById('emailTable');
+      
+      if (data.length === 0) {
+        container.innerHTML = '<div class="empty-state"><p>No emails sent yet</p></div>';
+        return;
+      }
+      
+      container.innerHTML = `
+        <table>
+          <thead>
+            <tr>
+              <th>Business Name</th>
+              <th>Email</th>
+              <th>Score</th>
+              <th>Segment</th>
+              <th>Template</th>
+              <th>Sent</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${data.map(lead => `
+              <tr>
+                <td><strong>${lead.name}</strong></td>
+                <td>${lead.email || 'N/A'}</td>
+                <td><strong>${lead.opportunity_score}</strong></td>
+                <td><span class="segment-badge segment-${lead.segment}">${lead.segment}</span></td>
+                <td>${lead.email_template_used || 'N/A'}</td>
+                <td>${formatDate(lead.email_sent_at)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+    }
+
+    function formatDate(dateString) {
+      if (!dateString) return 'N/A';
+      const date = new Date(dateString);
+      const now = new Date();
+      const diffMs = now - date;
+      const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+      
+      if (diffHours < 1) return 'Just now';
+      if (diffHours < 24) return `${diffHours}h ago`;
+      return date.toLocaleDateString();
+    }
+
+    // Auto-refresh every 60 seconds
+    setInterval(() => {
+      if (currentUser) loadDashboard();
+    }, 60000);
+
+    // Check auth on load
+    checkAuth();
+  </script>
+</body>
+</html>
