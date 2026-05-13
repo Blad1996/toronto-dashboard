@@ -88,7 +88,7 @@
               <span class="remember-box"></span>
               Remember me
             </label>
-            <a href="#" class="forgot-link" onclick="return false;">Forgot password?</a>
+            <a href="#" class="forgot-link" id="forgotLink">Forgot password?</a>
           </div>
 
           <button type="submit" class="btn-login" id="loginBtn">
@@ -255,6 +255,36 @@
   </div><!-- /#dashboardScreen -->
 
   <div id="toast" class="toast"></div>
+
+  <!-- ===== FORGOT PASSWORD MODAL ===== -->
+  <div id="forgotModal" class="modal-overlay" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="forgotTitle">
+    <div class="modal-box">
+      <button class="modal-close" id="closeForgotModal" aria-label="Close">✕</button>
+
+      <div class="modal-icon">📩</div>
+      <h3 id="forgotTitle">Reset your password</h3>
+      <p>Enter your email and we'll send you a secure link to set a new password.</p>
+
+      <div id="forgotError"   class="error-message"   style="display:none;"></div>
+      <div id="forgotSuccess" class="success-message" style="display:none;"></div>
+
+      <form id="forgotForm">
+        <div class="form-group" style="text-align:left;">
+          <label for="forgotEmail">Email Address</label>
+          <div class="input-wrapper">
+            <span class="input-icon">✉️</span>
+            <input type="email" id="forgotEmail" required placeholder="your@email.com" autocomplete="email">
+          </div>
+        </div>
+        <button type="submit" class="btn-login" id="forgotBtn">
+          <span class="btn-forgot__text">Send Reset Link</span>
+          <span class="btn-login__spinner" style="display:none;"></span>
+        </button>
+      </form>
+
+      <button class="btn-back-login" id="backToLoginBtn">← Back to Sign In</button>
+    </div>
+  </div>
 
   <!-- Scripts (order matters) -->
   <script src="js/config.js"></script>

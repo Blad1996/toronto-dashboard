@@ -73,6 +73,77 @@ document.getElementById('logoutBtn').addEventListener('click', async () => {
   showLogin();
 });
 
+// ---- Forgot password modal ----
+
+const forgotModal = document.getElementById('forgotModal');
+
+document.getElementById('forgotLink').addEventListener('click', (e) => {
+  e.preventDefault();
+  openForgotModal();
+});
+
+document.getElementById('closeForgotModal').addEventListener('click', closeForgotModal);
+document.getElementById('backToLoginBtn').addEventListener('click', closeForgotModal);
+
+forgotModal.addEventListener('click', (e) => {
+  if (e.target === forgotModal) closeForgotModal();
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && forgotModal.style.display !== 'none') closeForgotModal();
+});
+
+function openForgotModal() {
+  forgotModal.style.display = 'flex';
+  document.getElementById('forgotEmail').focus();
+  document.getElementById('forgotError').style.display   = 'none';
+  document.getElementById('forgotSuccess').style.display = 'none';
+  document.getElementById('forgotForm').style.display    = 'block';
+}
+
+function closeForgotModal() {
+  forgotModal.style.display = 'none';
+  document.getElementById('forgotEmail').value = '';
+}
+
+document.getElementById('forgotForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  const email      = document.getElementById('forgotEmail').value.trim();
+  const errorDiv   = document.getElementById('forgotError');
+  const successDiv = document.getElementById('forgotSuccess');
+  const btn        = document.getElementById('forgotBtn');
+  const btnText    = document.querySelector('.btn-forgot__text');
+  const spinner    = btn.querySelector('.btn-login__spinner');
+
+  errorDiv.style.display   = 'none';
+  successDiv.style.display = 'none';
+  btn.disabled             = true;
+  btnText.textContent      = 'Sending…';
+  spinner.style.display    = 'block';
+
+  try {
+    const redirectTo = window.location.origin +
+      window.location.pathname.replace('index.html', '') +
+      'reset-password.html';
+
+    const { error } = await supabaseClient.auth.resetPasswordForEmail(email, { redirectTo });
+    if (error) throw error;
+
+    document.getElementById('forgotForm').style.display = 'none';
+    successDiv.innerHTML =
+      `✓ Email sent to <strong>${email}</strong>. Check your inbox and spam folder.`;
+    successDiv.style.display = 'flex';
+  } catch (err) {
+    errorDiv.textContent   = err.message || 'Could not send reset email. Try again.';
+    errorDiv.style.display = 'flex';
+  } finally {
+    btn.disabled          = false;
+    btnText.textContent   = 'Send Reset Link';
+    spinner.style.display = 'none';
+  }
+});
+
 // ---- Show / hide password ----
 document.getElementById('passwordToggle').addEventListener('click', () => {
   const input = document.getElementById('loginPassword');
